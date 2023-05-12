@@ -1,0 +1,3 @@
+openai==0.27.6
+elevenlabslib==0.7.0
+Flask==2.3.2

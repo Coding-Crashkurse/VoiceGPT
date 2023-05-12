@@ -1,0 +1,20 @@
+version: "3"
+services:
+  api:
+    build: "./app"
+    ports:
+      - "5000:5000"
+    environment:
+      - FLASK_ENV=development
+
+  nginx:
+    image: nginx:latest
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+      - /etc/letsencrypt/live/<website>/fullchain.pem:/etc/ssl/certs/fullchain.pem
+      - /etc/letsencrypt/live/<website>/privkey.pem:/etc/ssl/private/privkey.pem
+    depends_on:
+      - api

@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Audio Recorder</title>
+
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+
+    <style>
+        html,
+        body {
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #f5f5f5;
+        }
+
+        .container {
+            border-radius: 10px;
+            min-width: 400px;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        button {
+            margin: 10px;
+        }
+    </style>
+
+</head>
+
+<body>
+    <div class="container">
+        <h2>AI Assistant</h2>
+        <div id="spinner" class="preloader-wrapper big active" style="display: none;">
+            <div class="spinner-layer spinner-blue-only">
+                <div class="circle-clipper left">
+                    <div class="circle"></div>
+                </div>
+                <div class="gap-patch">
+                    <div class="circle"></div>
+                </div>
+                <div class="circle-clipper right">
+                    <div class="circle"></div>
+                </div>
+            </div>
+        </div>
+
+        <button id="record" class="btn waves-effect waves-light red">
+            <i class="material-icons left">mic</i>
+            Aufnahme starten
+        </button>
+        <button id="stop" class="btn waves-effect waves-light red" disabled>
+            <i class="material-icons left">stop</i>
+            Stoppen
+        </button>
+        <div class="input-field">
+            <select id="voice-select" class="browser-default">
+                <option value="MarkusAI">MarkusAI</option>
+                <option value="Rachel">Rachel</option>
+                <option value="Adam">Adam</option>
+            </select>
+        </div>
+    </div>
+
+    <script>
+        const record = document.querySelector('#record');
+        const stop = document.querySelector('#stop');
+        const voiceSelect = document.querySelector('#voice-select');
+        const spinner = document.getElementById('spinner');
+
+        let chunks = [];
+        let mediaRecorder;
+
+        navigator.mediaDevices.getUserMedia({ audio: true })
+            .then(stream => {
+                mediaRecorder = new MediaRecorder(stream);
+
+                record.onclick = () => {
+                    mediaRecorder.start();
+                    stop.disabled = false;
+                    record.disabled = true;
+                };
+
+                stop.onclick = () => {
+                    mediaRecorder.stop();
+                    stop.disabled = true;
+                    record.disabled = false;
+                };
+
+                mediaRecorder.ondataavailable = (event) => {
+                    chunks.push(event.data);
+                };
+
+                mediaRecorder.onstop = () => {
+                    const blob = new Blob(chunks, { 'type': 'audio/ogg; codecs=opus' });
+                    chunks = [];
+
+                    const voice = voiceSelect.value;
+
+                    const formData = new FormData();
+                    formData.append('audio', blob);
+                    formData.append('voice', voice);
+
+                    spinner.style.display = 'block';
+
+                    fetch('/transcribe', {
+                        method: 'POST',
+                        body: formData
+                    })
+                        .then(response => response.blob())
+                        .then(data => {
+                            const audioUrl = URL.createObjectURL(data);
+                            spinner.style.display = 'none';
+                            const audio = new Audio(audioUrl);
+                            audio.play();
+                        })
+                        .catch(error => console.error('Error:', error))
+
+                };
+            });
+    </script>
+</body>
+
+</html>
